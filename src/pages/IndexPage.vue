@@ -2,22 +2,13 @@
   <q-page class="row q-pt-xl">
     <div class="full-width q-px-xl">
       <div class="q-mb-xl">
-        <q-input v-model="tempData.name" label="姓名" />
-        <q-input v-model="tempData.age" label="年齡" />
-        <q-btn color="primary" class="q-mt-md">新增</q-btn>
+        <q-input v-model="tempData.name" label="姓名" :rules="[val => !!val || '姓名不能為空']"/>
+        <q-input v-model="tempData.age" label="年齡" :rules="[val => !!val || '不得為空']"/>
+        <q-btn color="primary" class="q-mt-md" @click="createData">新增</q-btn>
       </div>
 
-      <q-table
-        flat
-        bordered
-        ref="tableRef"
-        :rows="blockData"
-        :columns="(tableConfig as QTableProps['columns'])"
-        row-key="id"
-        hide-pagination
-        separator="cell"
-        :rows-per-page-options="[0]"
-      >
+      <q-table flat bordered ref="tableRef" :rows="blockData" :columns="(tableConfig as QTableProps['columns'])"
+        row-key="id" hide-pagination separator="cell" :rows-per-page-options="[0]">
         <template v-slot:header="props">
           <q-tr :props="props">
             <q-th v-for="col in props.cols" :key="col.name" :props="props">
@@ -29,45 +20,22 @@
 
         <template v-slot:body="props">
           <q-tr :props="props">
-            <q-td
-              v-for="col in props.cols"
-              :key="col.name"
-              :props="props"
-              style="min-width: 120px"
-            >
-              <div>{{ col.value }}</div>
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+              <div>{{ props.row[col.field] }}</div>
             </q-td>
-            <q-td class="text-right" auto-width v-if="tableButtons.length > 0">
-              <q-btn
-                @click="handleClickOption(btn, props.row)"
-                v-for="(btn, index) in tableButtons"
-                :key="index"
-                size="sm"
-                color="grey-6"
-                round
-                dense
-                :icon="btn.icon"
-                class="q-ml-md"
-                padding="5px 5px"
-              >
-                <q-tooltip
-                  transition-show="scale"
-                  transition-hide="scale"
-                  anchor="top middle"
-                  self="bottom middle"
-                  :offset="[10, 10]"
-                >
-                  {{ btn.label }}
-                </q-tooltip>
+            <q-td class="text-right" auto-width>
+              <q-btn @click="editData(props.row)" size="sm" color="grey-6" round dense icon="edit" class="q-ml-md">
+                <q-tooltip>編輯</q-tooltip>
+              </q-btn>
+              <q-btn @click="deleteData(props.row.id)" size="sm" color="red-6" round dense icon="delete"
+                class="q-ml-md">
+                <q-tooltip>刪除</q-tooltip>
               </q-btn>
             </q-td>
           </q-tr>
         </template>
         <template v-slot:no-data="{ icon }">
-          <div
-            class="full-width row flex-center items-center text-primary q-gutter-sm"
-            style="font-size: 18px"
-          >
+          <div class="full-width row flex-center items-center text-primary q-gutter-sm" style="font-size: 18px">
             <q-icon size="2em" :name="icon" />
             <span> 無相關資料 </span>
           </div>
@@ -80,7 +48,7 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { QTableProps } from 'quasar';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 interface btnType {
   label: string;
   icon: string;
@@ -126,6 +94,51 @@ const tempData = ref({
 function handleClickOption(btn, data) {
   // ...
 }
+
+// get
+async function fetchData() {
+  try {
+    const response = await axios.get('https://dahua.metcfire.com.tw/api/CRUDTest/a');
+    blockData.value = response.data;
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+}
+
+// post
+async function createData() {
+  try {
+    const response = await axios.post('https://dahua.metcfire.com.tw/api/CRUDTest', {
+      name: tempData.value.name,
+      age: tempData.value.age,
+    });
+    fetchData();
+  } catch (error) {
+    console.error('Error creating data:', error);
+  }
+}
+
+// 編輯
+async function editData(row) {
+  tempData.value = { ...row };
+}
+
+
+// 刪除
+async function deleteData(id) {
+  try {
+    await axios.delete(`https://dahua.metcfire.com.tw/api/CRUDTest/${id}`);
+    fetchData();
+  } catch (error) {
+    console.error('Error deleting data:', error);
+  }
+}
+
+
+onMounted(() => {
+  fetchData();
+});
+
 </script>
 
 <style lang="scss" scoped>
